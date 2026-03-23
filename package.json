@@ -3,6 +3,12 @@
   "scripts": {
     "fork": "ts-node --skip-project tests/utils/account-fork.ts",
     "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/solana_arbitrage_program.ts",
+    "init": "ts-node --skip-project scripts/init-program.ts",
+    "init:dry": "DRY_RUN=true ts-node --skip-project scripts/init-program.ts",
+    "arb": "ts-node --skip-project scripts/execute-arb.ts",
+    "arb:dry": "DRY_RUN=true ts-node --skip-project scripts/execute-arb.ts",
+    "arb:reverse": "ROUTE=meteora-pump ts-node --skip-project scripts/execute-arb.ts",
+    "arb:reverse:dry": "DRY_RUN=true ROUTE=meteora-pump ts-node --skip-project scripts/execute-arb.ts",
     "swap:pump:buy": "ts-node --skip-project scripts/swap-pumpfun.ts",
     "swap:pump:sell": "DIRECTION=sell ts-node --skip-project scripts/swap-pumpfun.ts",
     "swap:pump:buy:dry": "DRY_RUN=true ts-node --skip-project scripts/swap-pumpfun.ts",

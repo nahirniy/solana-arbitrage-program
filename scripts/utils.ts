@@ -186,6 +186,109 @@ export async function getActiveBinArrays(conn: Connection): Promise<PublicKey[]>
   return existing;
 }
 
+// ─── Address Lookup Table ────────────────────────────────────────────────────
+
+export { AddressLookupTableProgram } from "@solana/web3.js";
+import { AddressLookupTableProgram, AddressLookupTableAccount } from "@solana/web3.js";
+
+export async function createLookupTable(
+  conn: Connection,
+  kp: Keypair,
+  addresses: PublicKey[],
+): Promise<AddressLookupTableAccount> {
+  const slot = await conn.getSlot();
+
+  const [createIx, lutAddress] = AddressLookupTableProgram.createLookupTable({
+    authority: kp.publicKey,
+    payer: kp.publicKey,
+    recentSlot: slot - 1,
+  });
+
+  // Extend in chunks of 20 (max per ix)
+  const extendIxs: TransactionInstruction[] = [];
+  for (let i = 0; i < addresses.length; i += 20) {
+    extendIxs.push(AddressLookupTableProgram.extendLookupTable({
+      lookupTable: lutAddress,
+      authority: kp.publicKey,
+      payer: kp.publicKey,
+      addresses: addresses.slice(i, i + 20),
+    }));
+  }
+
+  // Send create + first batch
+  const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+  const msg1 = new TransactionMessage({
+    payerKey: kp.publicKey,
+    recentBlockhash: blockhash,
+    instructions: [createIx, ...extendIxs.slice(0, 1)],
+  }).compileToV0Message();
+  const tx1 = new VersionedTransaction(msg1);
+  tx1.sign([kp]);
+  const sig1 = await conn.sendTransaction(tx1);
+  await conn.confirmTransaction({ signature: sig1, blockhash, lastValidBlockHeight }, "confirmed");
+  console.log("LUT created:", lutAddress.toBase58());
+
+  // Send remaining extend batches
+  for (let i = 1; i < extendIxs.length; i++) {
+    const { blockhash: bh, lastValidBlockHeight: lvbh } = await conn.getLatestBlockhash();
+    const msg = new TransactionMessage({
+      payerKey: kp.publicKey,
+      recentBlockhash: bh,
+      instructions: [extendIxs[i]],
+    }).compileToV0Message();
+    const tx = new VersionedTransaction(msg);
+    tx.sign([kp]);
+    const sig = await conn.sendTransaction(tx);
+    await conn.confirmTransaction({ signature: sig, blockhash: bh, lastValidBlockHeight: lvbh }, "confirmed");
+  }
+
+  // Wait for LUT to activate (need to wait ~1 slot)
+  console.log("Waiting for LUT activation...");
+  await new Promise((r) => setTimeout(r, 2000));
+
+  const lutAccount = await conn.getAddressLookupTable(lutAddress);
+  if (!lutAccount.value) throw new Error("Failed to fetch LUT");
+  console.log("LUT active with", lutAccount.value.state.addresses.length, "addresses");
+  return lutAccount.value;
+}
+
+export async function sendOrSimulateWithLUT(
+  conn: Connection,
+  ixs: TransactionInstruction[],
+  kp: Keypair,
+  lookupTable: AddressLookupTableAccount,
+  dryRun: boolean,
+) {
+  const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+  const message = new TransactionMessage({
+    payerKey: kp.publicKey,
+    recentBlockhash: blockhash,
+    instructions: ixs,
+  }).compileToV0Message([lookupTable]);
+  const tx = new VersionedTransaction(message);
+  tx.sign([kp]);
+
+  if (dryRun) {
+    console.log("\nSimulating...");
+    const sim = await conn.simulateTransaction(tx);
+    if (sim.value.err) {
+      console.log("❌ SIMULATION FAILED:", JSON.stringify(sim.value.err));
+      for (const l of sim.value.logs || []) {
+        if (l.includes("Error") || l.includes("log:")) console.log(" ", l);
+      }
+      process.exit(1);
+    } else {
+      console.log("✅ SIMULATION OK — CU:", sim.value.unitsConsumed);
+    }
+  } else {
+    console.log("\nSending transaction...");
+    const sig = await conn.sendTransaction(tx);
+    console.log("Signature:", sig);
+    await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
+    console.log("✅ Confirmed!");
+  }
+}
+
 // ─── Transaction send/simulate ───────────────────────────────────────────────
 
 export async function sendOrSimulate(
