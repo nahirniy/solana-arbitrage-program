@@ -59,7 +59,7 @@ pub fn swap<'info>(
         AccountMeta::new_readonly(accounts.token_x_mint.key(), false),
         AccountMeta::new_readonly(accounts.token_y_mint.key(), false),
         AccountMeta::new(accounts.oracle.key(), false),
-        AccountMeta::new_readonly(accounts.host_fee_in.key(), false),
+        AccountMeta::new(accounts.host_fee_in.key(), false),
         AccountMeta::new(accounts.user.key(), true),
         AccountMeta::new_readonly(accounts.token_x_program.key(), false),
         AccountMeta::new_readonly(accounts.token_y_program.key(), false),

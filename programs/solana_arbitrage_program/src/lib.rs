@@ -25,11 +25,11 @@ pub mod solana_arbitrage_program {
         RemoveOperator::process(ctx, operator_pubkey)
     }
 
-    pub fn execute_pump_arb(ctx: Context<ExecutePumpArb>, routes: Vec<Route>, amount_in: u64) -> Result<()> {
-        ExecutePumpArb::process(ctx, routes, amount_in)
-    }
-
-    pub fn execute_meteora_arb<'info>(ctx: Context<'_, '_, '_, 'info, ExecuteMeteoraArb<'info>>, routes: Vec<Route>, amount_in: u64) -> Result<()> {
-        ExecuteMeteoraArb::process(ctx, routes, amount_in)
+    pub fn execute_arb<'info>(
+        ctx: Context<'_, '_, '_, 'info, ExecuteArb<'info>>,
+        routes: Vec<Route>,
+        amount_in: u64,
+    ) -> Result<()> {
+        ExecuteArb::process(ctx, routes, amount_in)
     }
 }
