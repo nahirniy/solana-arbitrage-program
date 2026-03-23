@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { PublicKey, SystemProgram, Transaction, TransactionInstruction, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import {
   createAssociatedTokenAccountIdempotentInstruction,
   createSyncNativeInstruction,
@@ -10,6 +10,7 @@ import {
 } from "@solana/spl-token";
 import { SolanaArbitrageProgram } from "../../target/types/solana_arbitrage_program";
 import { WSOL_MINT, LIA_MINT, PUMP_PROGRAM, PUMP_EVENT_AUTHORITY } from "../accounts/pumpfun";
+import { METEORA_PROGRAM, METEORA_LB_PAIR } from "../accounts/meteora";
 
 export function deriveConfigPda(programId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync([Buffer.from("config")], programId)[0];
@@ -90,6 +91,32 @@ export async function setupUser(
     });
     try {
       await provider.sendAndConfirm(initTx);
+    } catch (_) { /* already initialized */ }
+  }
+
+  // Initialize Meteora bitmap extension (required for swap2 — internal bitmap is empty)
+  const bitmapExt = PublicKey.findProgramAddressSync(
+    [Buffer.from("bitmap"), METEORA_LB_PAIR.toBuffer()],
+    METEORA_PROGRAM
+  )[0];
+  const bitmapExtExists = await connection.getAccountInfo(bitmapExt);
+  if (!bitmapExtExists) {
+    const INIT_BITMAP_DISC = Buffer.from([47, 157, 226, 180, 12, 240, 33, 71]);
+    const initBitmapTx = new Transaction().add(
+      new TransactionInstruction({
+        programId: METEORA_PROGRAM,
+        keys: [
+          { pubkey: METEORA_LB_PAIR, isWritable: false, isSigner: false },
+          { pubkey: bitmapExt, isWritable: true, isSigner: false },
+          { pubkey: wallet.publicKey, isWritable: true, isSigner: true },
+          { pubkey: SystemProgram.programId, isWritable: false, isSigner: false },
+          { pubkey: SYSVAR_RENT_PUBKEY, isWritable: false, isSigner: false },
+        ],
+        data: INIT_BITMAP_DISC,
+      })
+    );
+    try {
+      await provider.sendAndConfirm(initBitmapTx);
     } catch (_) { /* already initialized */ }
   }
 

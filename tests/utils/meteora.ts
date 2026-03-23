@@ -66,7 +66,7 @@ export interface MeteoraSwapAccounts {
 export function meteoraSwapAccounts(): MeteoraSwapAccounts {
   return {
     meteoraLbPair:                   METEORA_LB_PAIR,
-    meteoraBinArrayBitmapExtension:  METEORA_PROGRAM, // program ID = None (placeholder)
+    meteoraBinArrayBitmapExtension:  METEORA_PROGRAM, // program ID = None (as in real mainnet swaps)
     meteoraReserveX:                 METEORA_RESERVE_X,
     meteoraReserveY:                 METEORA_RESERVE_Y,
     meteoraOracle:                   METEORA_ORACLE,

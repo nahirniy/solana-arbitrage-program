@@ -1,0 +1,16 @@
+{
+  "lbPair": "HPx4ySmLFFWWwwA8q7bgXZncoAmDgEmyJKdbSvucx7AJ",
+  "oracle": "EnMRJT1QE4e6MKX8FiWKEagzm2Cf7KXiNEKS8VJBMunf",
+  "activeId": -238,
+  "activeBinArrayIndex": -4,
+  "binArrays": [
+    {
+      "index": -4,
+      "address": "8Y9c4BKhaDn7ntFGD6TK38nogDGkYeAfsSsCfobovzBe"
+    },
+    {
+      "index": -3,
+      "address": "EuvgBXuauWJWhvJj2P6PDDzD1ygwyo9RSNqzmTvYVHvz"
+    }
+  ]
+}

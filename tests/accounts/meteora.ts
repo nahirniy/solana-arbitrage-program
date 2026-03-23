@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 
 export const METEORA_PROGRAM = new PublicKey("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo");
-export const METEORA_LB_PAIR = new PublicKey("8ida4DAhywHBsH8qAaXhWYT316kaBaFLhVr3ZQc48pUf");
+export const METEORA_LB_PAIR = new PublicKey("HPx4ySmLFFWWwwA8q7bgXZncoAmDgEmyJKdbSvucx7AJ");
 
 // PDAs derived at module load — deterministic, no RPC needed
 export const METEORA_ORACLE = PublicKey.findProgramAddressSync(
@@ -20,6 +20,5 @@ export const METEORA_EVENT_AUTHORITY = PublicKey.findProgramAddressSync(
 )[0];
 
 // token_x = LIA (offset 88 in LbPair), token_y = WSOL (offset 120)
-// reserve_x at offset 152, reserve_y at offset 184 — read from LbPair account data
-export const METEORA_RESERVE_X = new PublicKey("FhLjTKC7CqZ2UqS12LiC8GHz3XKEqtdnHHtZU6cZ2DjV");
-export const METEORA_RESERVE_Y = new PublicKey("924aNoaduCwtYxLB6ZncwRN3Ljiu291AekQGW69woLuu");
+export const METEORA_RESERVE_X = new PublicKey("6QeFdPn8opr9oC5WaZ984ova7LwhQzfM5n5JeEqVTAUw");
+export const METEORA_RESERVE_Y = new PublicKey("CFooADfpnUiQjzFJUqKpaxV5mPowb7UGSksExTqTMd21");
