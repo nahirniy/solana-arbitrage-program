@@ -252,6 +252,29 @@ export async function createLookupTable(
   return lutAccount.value;
 }
 
+// ─── Balance helpers ────────────────────────────────────────────────────────
+
+async function getTokenAccountBalance(conn: Connection, ata: PublicKey): Promise<bigint> {
+  try {
+    const info = await conn.getAccountInfo(ata);
+    if (!info || info.data.length < 72) return BigInt(0);
+    return info.data.readBigUInt64LE(64);
+  } catch { return BigInt(0); }
+}
+
+function parseTokenAmount(data: Buffer): bigint {
+  if (data.length < 72) return BigInt(0);
+  return data.readBigUInt64LE(64);
+}
+
+function formatSol(amount: bigint): string {
+  return (Number(amount) / 1e9).toFixed(9) + " SOL";
+}
+
+function formatLia(amount: bigint): string {
+  return (Number(amount) / 1e6).toFixed(6) + " LIA";
+}
+
 export async function sendOrSimulateWithLUT(
   conn: Connection,
   ixs: TransactionInstruction[],
@@ -269,17 +292,36 @@ export async function sendOrSimulateWithLUT(
   tx.sign([kp]);
 
   if (dryRun) {
+    const { userWsol, userLia } = deriveUserAccounts(kp.publicKey);
+    const [wsolBefore, liaBefore] = await Promise.all([
+      getTokenAccountBalance(conn, userWsol),
+      getTokenAccountBalance(conn, userLia),
+    ]);
+
     console.log("\nSimulating...");
-    const sim = await conn.simulateTransaction(tx);
+    const sim = await conn.simulateTransaction(tx, { accounts: {
+      addresses: [userWsol.toBase58(), userLia.toBase58()],
+      encoding: "base64",
+    }});
     if (sim.value.err) {
       console.log("❌ SIMULATION FAILED:", JSON.stringify(sim.value.err));
       for (const l of sim.value.logs || []) {
         if (l.includes("Error") || l.includes("log:")) console.log(" ", l);
       }
       process.exit(1);
-    } else {
-      console.log("✅ SIMULATION OK — CU:", sim.value.unitsConsumed);
     }
+
+    // Parse post-sim balances from returned accounts
+    const wsolAfter = sim.value.accounts?.[0]
+      ? parseTokenAmount(Buffer.from(sim.value.accounts[0].data[0], "base64"))
+      : wsolBefore;
+    const liaAfter = sim.value.accounts?.[1]
+      ? parseTokenAmount(Buffer.from(sim.value.accounts[1].data[0], "base64"))
+      : liaBefore;
+
+    console.log("✅ SIMULATION OK — CU:", sim.value.unitsConsumed);
+    console.log(`  WSOL: ${formatSol(wsolBefore)} → ${formatSol(wsolAfter)} (Δ ${formatSol(wsolAfter - wsolBefore)})`);
+    console.log(`  LIA:  ${formatLia(liaBefore)} → ${formatLia(liaAfter)} (Δ ${formatLia(liaAfter - liaBefore)})`);
   } else {
     console.log("\nSending transaction...");
     const sig = await conn.sendTransaction(tx);
